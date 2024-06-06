@@ -1,5 +1,5 @@
 {
-    "name": "npmone",
+    "name": "@dragorog/npmone",
     "version": "0.0.1",
     "scripts": {
       "build": "echo Building npmone...",

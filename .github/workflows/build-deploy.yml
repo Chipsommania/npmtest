@@ -23,52 +23,36 @@ jobs:
       id: get-changes
       run: |
         if git rev-parse HEAD^ >/dev/null 2>&1; then
-          CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD -- packages)
         else
-          CHANGED_PACKAGES=$(git diff --name-only $(git hash-object -t tree /dev/null) HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
+          CHANGED_FILES=$(git diff --name-only $(git hash-object -t tree /dev/null) HEAD -- packages)
         fi
+        echo "Changed files: $CHANGED_FILES"
+        CHANGED_PACKAGES=$(echo "$CHANGED_FILES" | grep -o 'packages/[^/]*' | sort | uniq)
         echo "Changed packages: $CHANGED_PACKAGES"
-        # Convert space-separated package names to JSON array
-        CHANGED_PACKAGES_JSON=$(echo "$CHANGED_PACKAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-        echo "CHANGED_PACKAGES_JSON=$CHANGED_PACKAGES_JSON" >> $GITHUB_ENV
-        echo "packages=$CHANGED_PACKAGES_JSON" >> $GITHUB_ENV
-        echo "Packages JSON: $CHANGED_PACKAGES_JSON"
+        # Read package names from package.json files
+        CHANGED_PACKAGE_NAMES=$(echo "$CHANGED_PACKAGES" | xargs -I {} sh -c 'jq -r ".name" {}/package.json')
+        echo "Changed package names: $CHANGED_PACKAGE_NAMES"
+        CHANGED_PACKAGE_NAMES_JSON=$(echo "$CHANGED_PACKAGE_NAMES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        echo "CHANGED_PACKAGE_NAMES_JSON=$CHANGED_PACKAGE_NAMES_JSON" >> $GITHUB_ENV
+        echo "packages=$CHANGED_PACKAGE_NAMES_JSON" >> $GITHUB_ENV
+        echo "Packages JSON: $CHANGED_PACKAGE_NAMES_JSON"
 
     - name: Print changed packages
-      run: echo $CHANGED_PACKAGES
+      run: echo $CHANGED_PACKAGE_NAMES
 
-    - name: Build and Publish npm1drago if changed
-      if: contains(env.CHANGED_PACKAGES_JSON, 'npm1drago')
+    - name: Build and Publish changed packages
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
-        cd packages/npm1drago
-        npm install
-        npm run build
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-        npx semantic-release
-
-    - name: Build and Publish npm2drago if changed
-      if: contains(env.CHANGED_PACKAGES_JSON, 'npm2drago')
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: |
-        cd packages/npm2drago
-        npm install
-        npm run build
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-        npx semantic-release
-
-    - name: Build and Publish npm3drago if changed
-      if: contains(env.CHANGED_PACKAGES_JSON, 'npm3drago')
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: |
-        cd packages/npm3drago
-        npm install
-        npm run build
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-        npx semantic-release
+        for PACKAGE in $(echo $CHANGED_PACKAGE_NAMES | jq -r '.[]'); do
+          PACKAGE_DIR=$(echo $CHANGED_PACKAGES | grep "/$PACKAGE" | head -n 1)
+          echo "Building and publishing $PACKAGE in directory $PACKAGE_DIR"
+          cd $PACKAGE_DIR
+          npm install
+          npm run build
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npx semantic-release
+          cd - # Go back to the root directory
+        done

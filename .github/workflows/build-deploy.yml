@@ -17,12 +17,14 @@ jobs:
     - name: Get list of changed packages
       id: get-changes
       run: |
-        echo "CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD | grep -o 'packages/[^/]*' | sort | uniq)" >> $GITHUB_ENV
+        CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD | grep -o 'packages/[^/]*' | sort | uniq)
+        echo "Changed packages: $CHANGED_PACKAGES"
+        echo "CHANGED_PACKAGES=$CHANGED_PACKAGES" >> $GITHUB_ENV
 
     - name: Set output
       id: set-output
       run: |
-        echo "::set-output name=packages::$(echo $CHANGED_PACKAGES | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+        echo "::set-output name=packages::$(echo $CHANGED_PACKAGES | sed 's/packages\///g' | jq -R -s -c 'split("\n") | map(select(length > 0))')"
 
   build:
     runs-on: ubuntu-latest

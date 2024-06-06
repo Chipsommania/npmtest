@@ -1,1 +1,1 @@
-console.log("This is npmthree paddsdckageddsdsasdas.");
+console.log("This is npmthrddee paddsdckageddsdsasdas.");

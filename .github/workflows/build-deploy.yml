@@ -8,6 +8,8 @@ on:
 jobs:
   detect-packages-and-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Ensure the token has write permissions
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -20,7 +22,6 @@ jobs:
     - name: Get list of changed packages
       id: get-changes
       run: |
-        # Check if HEAD^ is a valid revision, otherwise fallback to empty tree
         if git rev-parse HEAD^ >/dev/null 2>&1; then
           CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
         else
@@ -38,6 +39,8 @@ jobs:
 
     - name: Build and Publish npmone if changed
       if: contains(steps.get-changes.outputs.packages, 'npmone')
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cd packages/npmone
         npm install
@@ -47,6 +50,8 @@ jobs:
 
     - name: Build and Publish npmtwo if changed
       if: contains(steps.get-changes.outputs.packages, 'npmtwo')
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cd packages/npmtwo
         npm install
@@ -56,6 +61,8 @@ jobs:
 
     - name: Build and Publish npmthree if changed
       if: contains(steps.get-changes.outputs.packages, 'npmthree')
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cd packages/npmthree
         npm install

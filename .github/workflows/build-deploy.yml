@@ -29,16 +29,26 @@ jobs:
           echo "$CHANGED" | jq -c '.' > changed-packages.json
           echo "CHANGED_PACKAGES=$(cat changed-packages.json)" >> $GITHUB_ENV
 
+      - name: List all packages
+        id: list-packages
+        run: |
+          PACKAGES=$(npx lerna ls --all --json)
+          echo "$PACKAGES" | jq -c '.' > all-packages.json
+          echo "ALL_PACKAGES=$(cat all-packages.json)" >> $GITHUB_ENV
+
       - name: Build and publish changed packages
         if: env.CHANGED_PACKAGES != '[]'
         run: |
-          CHANGED_PACKAGES=$(echo '${{ env.CHANGED_PACKAGES }}' | jq -r '.[].name')
-          for PACKAGE in $CHANGED_PACKAGES; do
-            echo "Building and publishing $PACKAGE"
-            cd packages/$PACKAGE
+          CHANGED_NAMES=$(echo '${{ env.CHANGED_PACKAGES }}' | jq -r '.[].name')
+          ALL_PACKAGES=$(echo '${{ env.ALL_PACKAGES }}')
+          
+          for NAME in $CHANGED_NAMES; do
+            LOCATION=$(echo $ALL_PACKAGES | jq -r --arg NAME "$NAME" '.[] | select(.name == $NAME) | .location')
+            echo "Building and publishing $NAME at $LOCATION"
+            cd $LOCATION
             npm install
             npx semantic-release
-            cd ../../
+            cd - > /dev/null
           done
 
       - name: Clean up npm cache

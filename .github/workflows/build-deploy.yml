@@ -21,10 +21,15 @@ jobs:
         echo "Changed packages: $CHANGED_PACKAGES"
         echo "CHANGED_PACKAGES=$CHANGED_PACKAGES" >> $GITHUB_ENV
 
+    - name: Print changed packages
+      run: echo $CHANGED_PACKAGES
+
     - name: Set output
       id: set-output
       run: |
-        echo "::set-output name=packages::$(echo $CHANGED_PACKAGES | sed 's/packages\///g' | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+        PACKAGES=$(echo "$CHANGED_PACKAGES" | sed 's/packages\///g' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        echo "Packages JSON: $PACKAGES"
+        echo "::set-output name=packages::$PACKAGES"
 
   build:
     runs-on: ubuntu-latest

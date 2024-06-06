@@ -37,35 +37,38 @@ jobs:
     - name: Print changed packages
       run: echo $CHANGED_PACKAGES
 
-    - name: Build and Publish npmone if changed
-      if: contains(steps.get-changes.outputs.packages, 'npmone')
+    - name: Build and Publish npm1drago if changed
+      if: contains(steps.get-changes.outputs.packages, 'npm1drago')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
-        cd packages/npmone
+        cd packages/npm1drago
         npm install
         npm run build
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
         npx semantic-release
 
-    - name: Build and Publish npmtwo if changed
-      if: contains(steps.get-changes.outputs.packages, 'npmtwo')
+    - name: Build and Publish npm2drago if changed
+      if: contains(steps.get-changes.outputs.packages, 'npm2drago')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
-        cd packages/npmtwo
+        cd packages/npm2drago
         npm install
         npm run build
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
         npx semantic-release
 
-    - name: Build and Publish npmthree if changed
-      if: contains(steps.get-changes.outputs.packages, 'npmthree')
+    - name: Build and Publish npm3drago if changed
+      if: contains(steps.get-changes.outputs.packages, 'npm3drago')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
-        cd packages/npmthree
+        cd packages/npm3drago
         npm install
         npm run build
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
         npx semantic-release

@@ -20,7 +20,11 @@ jobs:
     - name: Get list of changed packages
       id: get-changes
       run: |
-        CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
+        if [ -n "$(git rev-parse HEAD^ 2>/dev/null)" ]; then
+          CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
+        else
+          CHANGED_PACKAGES=$(git diff --name-only HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
+        fi
         echo "CHANGED_PACKAGES=$CHANGED_PACKAGES" >> $GITHUB_ENV
 
     - name: Print changed packages

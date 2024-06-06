@@ -1,0 +1,12 @@
+{
+    "name": "npmtwo",
+    "version": "0.0.0",
+    "scripts": {
+      "build": "echo Building npmtwo...",
+      "semantic-release": "semantic-release"
+    },
+    "release": {
+      "branches": ["main"]
+    }
+  }
+  

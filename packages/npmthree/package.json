@@ -1,0 +1,12 @@
+{
+    "name": "npmthree",
+    "version": "0.0.0",
+    "scripts": {
+      "build": "echo Building npmthree...",
+      "semantic-release": "semantic-release"
+    },
+    "release": {
+      "branches": ["main"]
+    }
+  }
+  

@@ -28,10 +28,6 @@ jobs:
       - name: Set up npm authentication
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
-      - name: Set up GitHub authentication
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Find changed packages
         id: changed-packages
         run: |
@@ -48,6 +44,8 @@ jobs:
 
       - name: Build and publish changed packages
         if: env.CHANGED_PACKAGES != '[]'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CHANGED_NAMES=$(echo '${{ env.CHANGED_PACKAGES }}' | jq -r '.[].name')
           ALL_PACKAGES=$(echo '${{ env.ALL_PACKAGES }}')

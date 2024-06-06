@@ -1,6 +1,6 @@
 {
-    "name": "@dragorog/npmone",
-    "version": "0.0.1",
+    "name": "npmone",
+    "version": "0.0.",
     "scripts": {
       "build": "echo Building npmone...",
       "semantic-release": "semantic-release"

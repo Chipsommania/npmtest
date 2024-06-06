@@ -7,9 +7,6 @@
   "scripts": {
     "build": "lerna run build"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "devDependencies": {
     "lerna": "^4.0.0"
   }

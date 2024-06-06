@@ -1,5 +1,5 @@
 {
-    "name": "@dragorog/npmthree",
+    "name": "npmthree",
     "version": "0.0.0",
     "scripts": {
       "build": "echo Building npmthree...",

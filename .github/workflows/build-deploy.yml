@@ -6,37 +6,8 @@ on:
       - 'packages/*/**'
 
 jobs:
-  detect-packages:
+  detect-packages-and-build:
     runs-on: ubuntu-latest
-    outputs:
-      packages: ${{ steps.set-output.outputs.packages }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Get list of changed packages
-      id: get-changes
-      run: |
-        CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD | grep -o 'packages/[^/]*' | sort | uniq)
-        echo "Changed packages: $CHANGED_PACKAGES"
-        echo "CHANGED_PACKAGES=$CHANGED_PACKAGES" >> $GITHUB_ENV
-
-    - name: Print changed packages
-      run: echo $CHANGED_PACKAGES
-
-    - name: Set output
-      id: set-output
-      run: |
-        PACKAGES=$(echo "$CHANGED_PACKAGES" | sed 's/packages\///g' | jq -R -s -c 'split("\n") | map(select(length > 0))')
-        echo "Packages JSON: $PACKAGES"
-        echo "::set-output name=packages::$PACKAGES"
-
-  build:
-    runs-on: ubuntu-latest
-    needs: detect-packages
-    strategy:
-      matrix:
-        package: ${{ fromJson(needs.detect-packages.outputs.packages) }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -46,17 +17,38 @@ jobs:
       with:
         node-version: '16'
 
-    - name: Install dependencies
-      run: npm install
-
-    - name: Build package
+    - name: Get list of changed packages
+      id: get-changes
       run: |
-        cd packages/${{ matrix.package }}
+        CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
+        echo "CHANGED_PACKAGES=$CHANGED_PACKAGES" >> $GITHUB_ENV
+
+    - name: Print changed packages
+      run: echo $CHANGED_PACKAGES
+
+    - name: Build and Publish npmone if changed
+      if: contains(env.CHANGED_PACKAGES, 'npmone')
+      run: |
+        cd packages/npmone
+        npm install
         npm run build
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+        npx semantic-release
 
-    - name: Semantic Release
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    - name: Build and Publish npmtwo if changed
+      if: contains(env.CHANGED_PACKAGES, 'npmtwo')
       run: |
-        cd packages/${{ matrix.package }}
+        cd packages/npmtwo
+        npm install
+        npm run build
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+        npx semantic-release
+
+    - name: Build and Publish npmthree if changed
+      if: contains(env.CHANGED_PACKAGES, 'npmthree')
+      run: |
+        cd packages/npmthree
+        npm install
+        npm run build
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
         npx semantic-release

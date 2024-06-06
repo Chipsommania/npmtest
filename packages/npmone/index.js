@@ -1,1 +1,1 @@
-console.log("This is npmone package.");
+console.log("This is npmone package. testing");

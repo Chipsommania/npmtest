@@ -1,6 +1,6 @@
 {
     "name": "npmone",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "scripts": {
       "build": "echo Building npmone...",
       "semantic-release": "semantic-release"

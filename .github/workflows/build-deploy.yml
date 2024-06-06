@@ -47,9 +47,8 @@ jobs:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         CHANGED_PACKAGES: ${{ steps.get-changes.outputs.packages }}
       run: |
-        CHANGED_PACKAGES=$(echo $CHANGED_PACKAGES | jq -r '.[]')
-        for PACKAGE in $CHANGED_PACKAGES; do
-          PACKAGE_DIR=$(echo "$CHANGED_FILES" | grep "$PACKAGE/package.json" | sed 's|/package.json||')
+        for PACKAGE in $(echo $CHANGED_PACKAGE_NAMES_JSON | jq -r '.[]'); do
+          PACKAGE_DIR=$(echo "$CHANGED_PACKAGES" | grep -E "packages/.*/package.json" | grep "/$PACKAGE/" | head -n 1 | sed 's|/package.json||')
           echo "Building and publishing $PACKAGE in directory $PACKAGE_DIR"
           cd $PACKAGE_DIR
           npm install

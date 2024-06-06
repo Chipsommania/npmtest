@@ -1,67 +1,44 @@
-name: Build and Deploy Packages
+name: Release
 
 on:
   push:
-    paths:
-      - 'packages/*/**'
+    branches:
+      - main
 
 jobs:
-  detect-packages-and-build:
+  release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Ensure the token has write permissions
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'  # Update to Node.js 20
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
 
-    - name: Get list of changed packages
-      id: get-changes
-      run: |
-        if git rev-parse HEAD^ >/dev/null 2>&1; then
-          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD -- packages)
-        else
-          CHANGED_FILES=$(git diff --name-only $(git hash-object -t tree /dev/null) HEAD -- packages)
-        fi
-        echo "Changed files: $CHANGED_FILES"
-        CHANGED_PACKAGES=$(echo "$CHANGED_FILES" | grep -o 'packages/[^/]*' | sort | uniq)
-        echo "Changed packages: $CHANGED_PACKAGES"
-        # Read package names from package.json files
-        CHANGED_PACKAGE_NAMES=""
-        for PACKAGE in $CHANGED_PACKAGES; do
-          PACKAGE_NAME=$(jq -r ".name" $PACKAGE/package.json)
-          CHANGED_PACKAGE_NAMES="$CHANGED_PACKAGE_NAMES $PACKAGE_NAME"
-        done
-        echo "Changed package names: $CHANGED_PACKAGE_NAMES"
-        CHANGED_PACKAGE_NAMES_JSON=$(echo "$CHANGED_PACKAGE_NAMES" | jq -R -s -c 'split(" ") | map(select(length > 0))')
-        CHANGED_PACKAGES_JSON=$(echo "$CHANGED_PACKAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-        echo "CHANGED_PACKAGE_NAMES_JSON=$CHANGED_PACKAGE_NAMES_JSON" >> $GITHUB_ENV
-        echo "CHANGED_PACKAGES_JSON=$CHANGED_PACKAGES_JSON" >> $GITHUB_ENV
-        echo "Packages JSON: $CHANGED_PACKAGES_JSON"
+      - name: Install dependencies
+        run: npm install
 
-    - name: Print changed packages
-      run: echo $CHANGED_PACKAGE_NAMES
+      - name: Find changed packages
+        id: changed-packages
+        run: |
+          CHANGED=$(npx lerna changed --json)
+          echo "::set-output name=changed::$CHANGED"
 
-    - name: Build and Publish changed packages
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        CHANGED_PACKAGE_NAMES_JSON: ${{ env.CHANGED_PACKAGE_NAMES_JSON }}
-        CHANGED_PACKAGES_JSON: ${{ env.CHANGED_PACKAGES_JSON }}
-      run: |
-        CHANGED_PACKAGE_NAMES=$(echo $CHANGED_PACKAGE_NAMES_JSON | jq -r '.[]')
-        CHANGED_PACKAGES=$(echo $CHANGED_PACKAGES_JSON | jq -r '.[]')
-        for PACKAGE_DIR in $CHANGED_PACKAGES; do
-          PACKAGE_NAME=$(jq -r ".name" $PACKAGE_DIR/package.json)
-          echo "Building and publishing $PACKAGE_NAME in directory $PACKAGE_DIR"
-          cd $PACKAGE_DIR
-          npm install
-          npm run build
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-          npx semantic-release
-          cd - # Go back to the root directory
-        done
+      - name: Build and publish changed packages
+        if: steps.changed-packages.outputs.changed != '[]'
+        run: |
+          CHANGED_PACKAGES=$(echo ${{ steps.changed-packages.outputs.changed }} | jq -r '.[].name')
+          for PACKAGE in $CHANGED_PACKAGES; do
+            echo "Building and publishing $PACKAGE"
+            cd packages/$PACKAGE
+            npm install
+            npx semantic-release
+            cd ../../
+          done
+
+      - name: Clean up npm cache
+        run: npm cache clean --force

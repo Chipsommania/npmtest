@@ -1,4 +1,4 @@
-name: Release
+name: Initial Release
 
 on:
   push:
@@ -31,4 +31,4 @@ jobs:
       - name: Publish packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx lerna publish --yes
+        run: npx lerna publish from-package --yes

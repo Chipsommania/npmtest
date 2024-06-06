@@ -2,6 +2,18 @@
   "packages": [
     "packages/*"
   ],
-  "version": "independent"
-
+  "version": "independent",
+  "npmClient": "npm",
+  "useWorkspaces": true,
+  "command": {
+    "publish": {
+      "conventionalCommits": true,
+      "ignoreChanges": [
+        "**/test/**",
+        "**/*.md"
+      ],
+      "message": "chore(release): publish",
+      "registry": "https://registry.npmjs.org/"
+    }
+  }
 }

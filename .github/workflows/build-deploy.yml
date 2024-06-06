@@ -31,12 +31,17 @@ jobs:
         CHANGED_PACKAGES=$(echo "$CHANGED_FILES" | grep -o 'packages/[^/]*' | sort | uniq)
         echo "Changed packages: $CHANGED_PACKAGES"
         # Read package names from package.json files
-        CHANGED_PACKAGE_NAMES=$(echo "$CHANGED_PACKAGES" | xargs -I {} sh -c 'jq -r ".name" {}/package.json')
+        CHANGED_PACKAGE_NAMES=""
+        for PACKAGE in $CHANGED_PACKAGES; do
+          PACKAGE_NAME=$(jq -r ".name" $PACKAGE/package.json)
+          CHANGED_PACKAGE_NAMES="$CHANGED_PACKAGE_NAMES $PACKAGE_NAME"
+        done
         echo "Changed package names: $CHANGED_PACKAGE_NAMES"
-        CHANGED_PACKAGE_NAMES_JSON=$(echo "$CHANGED_PACKAGE_NAMES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        CHANGED_PACKAGE_NAMES_JSON=$(echo "$CHANGED_PACKAGE_NAMES" | jq -R -s -c 'split(" ") | map(select(length > 0))')
+        CHANGED_PACKAGES_JSON=$(echo "$CHANGED_PACKAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
         echo "CHANGED_PACKAGE_NAMES_JSON=$CHANGED_PACKAGE_NAMES_JSON" >> $GITHUB_ENV
-        echo "packages=$CHANGED_PACKAGE_NAMES_JSON" >> $GITHUB_ENV
-        echo "Packages JSON: $CHANGED_PACKAGE_NAMES_JSON"
+        echo "CHANGED_PACKAGES_JSON=$CHANGED_PACKAGES_JSON" >> $GITHUB_ENV
+        echo "Packages JSON: $CHANGED_PACKAGES_JSON"
 
     - name: Print changed packages
       run: echo $CHANGED_PACKAGE_NAMES
@@ -45,11 +50,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        CHANGED_PACKAGES: ${{ steps.get-changes.outputs.packages }}
+        CHANGED_PACKAGE_NAMES_JSON: ${{ env.CHANGED_PACKAGE_NAMES_JSON }}
+        CHANGED_PACKAGES_JSON: ${{ env.CHANGED_PACKAGES_JSON }}
       run: |
-        for PACKAGE in $(echo $CHANGED_PACKAGE_NAMES_JSON | jq -r '.[]'); do
-          PACKAGE_DIR=$(echo "$CHANGED_PACKAGES" | grep -E "packages/.*/package.json" | grep "/$PACKAGE/" | head -n 1 | sed 's|/package.json||')
-          echo "Building and publishing $PACKAGE in directory $PACKAGE_DIR"
+        CHANGED_PACKAGE_NAMES=$(echo $CHANGED_PACKAGE_NAMES_JSON | jq -r '.[]')
+        CHANGED_PACKAGES=$(echo $CHANGED_PACKAGES_JSON | jq -r '.[]')
+        for PACKAGE_DIR in $CHANGED_PACKAGES; do
+          PACKAGE_NAME=$(jq -r ".name" $PACKAGE_DIR/package.json)
+          echo "Building and publishing $PACKAGE_NAME in directory $PACKAGE_DIR"
           cd $PACKAGE_DIR
           npm install
           npm run build

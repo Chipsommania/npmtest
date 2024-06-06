@@ -20,26 +20,24 @@ jobs:
     - name: Get list of changed packages
       id: get-changes
       run: |
+        # Check if HEAD^ is a valid revision, otherwise fallback to empty tree
         if git rev-parse HEAD^ >/dev/null 2>&1; then
           CHANGED_PACKAGES=$(git diff --name-only HEAD^ HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
         else
           CHANGED_PACKAGES=$(git diff --name-only $(git hash-object -t tree /dev/null) HEAD -- packages | grep -o 'packages/[^/]*' | sort | uniq | sed 's/packages\///' | uniq)
         fi
-        echo "CHANGED_PACKAGES=$CHANGED_PACKAGES" >> $GITHUB_ENV
         echo "Changed packages: $CHANGED_PACKAGES"
+        # Convert space-separated package names to JSON array
+        CHANGED_PACKAGES_JSON=$(echo "$CHANGED_PACKAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        echo "CHANGED_PACKAGES_JSON=$CHANGED_PACKAGES_JSON" >> $GITHUB_ENV
+        echo "::set-output name=packages::$CHANGED_PACKAGES_JSON"
+        echo "Packages JSON: $CHANGED_PACKAGES_JSON"
 
     - name: Print changed packages
       run: echo $CHANGED_PACKAGES
 
-    - name: Set output for changed packages
-      id: set-output
-      run: |
-        CHANGED_PACKAGES=$(echo "$CHANGED_PACKAGES" | tr ' ' '\n' | jq -R -s -c 'split("\n") | map(select(length > 0))')
-        echo "::set-output name=packages::$CHANGED_PACKAGES"
-        echo "Packages JSON: $CHANGED_PACKAGES"
-
     - name: Build and Publish npmone if changed
-      if: contains(steps.set-output.outputs.packages, 'npmone')
+      if: contains(steps.get-changes.outputs.packages, 'npmone')
       run: |
         cd packages/npmone
         npm install
@@ -48,7 +46,7 @@ jobs:
         npx semantic-release
 
     - name: Build and Publish npmtwo if changed
-      if: contains(steps.set-output.outputs.packages, 'npmtwo')
+      if: contains(steps.get-changes.outputs.packages, 'npmtwo')
       run: |
         cd packages/npmtwo
         npm install
@@ -57,7 +55,7 @@ jobs:
         npx semantic-release
 
     - name: Build and Publish npmthree if changed
-      if: contains(steps.set-output.outputs.packages, 'npmthree')
+      if: contains(steps.get-changes.outputs.packages, 'npmthree')
       run: |
         cd packages/npmthree
         npm install

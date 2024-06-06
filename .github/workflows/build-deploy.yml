@@ -26,12 +26,13 @@ jobs:
         id: changed-packages
         run: |
           CHANGED=$(npx lerna changed --json)
-          echo "::set-output name=changed::$CHANGED"
+          echo "$CHANGED" > changed-packages.json
+          echo "changed=$(cat changed-packages.json)" >> $GITHUB_ENV
 
       - name: Build and publish changed packages
-        if: steps.changed-packages.outputs.changed != '[]'
+        if: env.changed != '[]'
         run: |
-          CHANGED_PACKAGES=$(echo ${{ steps.changed-packages.outputs.changed }} | jq -r '.[].name')
+          CHANGED_PACKAGES=$(echo '${{ env.changed }}' | jq -r '.[].name')
           for PACKAGE in $CHANGED_PACKAGES; do
             echo "Building and publishing $PACKAGE"
             cd packages/$PACKAGE

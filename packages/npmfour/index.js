@@ -1,1 +1,1 @@
-console.log("Ovo je verzija 2.0.0");
+console.log("Ovo je verzija 2.0.1");

@@ -1,5 +1,5 @@
 {
-    "name": "npm1drago",
+    "name": "npm1dragotest",
     "version": "0.2.1",
     "scripts": {
       "build": "echo Building npmone...",

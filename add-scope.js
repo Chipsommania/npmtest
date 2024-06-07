@@ -11,6 +11,12 @@ fs.readdirSync(packagesDir).forEach(packageName => {
     if (!packageJson.name.startsWith(scope)) {
       const pluginName = packageJson.name.replace('-temp', '');
       packageJson.name = `${scope}-${pluginName}`;
+      
+      // Add publishConfig for private packages
+      packageJson.publishConfig = {
+        access: "restricted"
+      };
+      
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
       console.log(`Updated ${packageName}: ${packageJson.name}`);
     }

@@ -55,7 +55,6 @@ jobs:
             echo "Building and publishing $NAME at $LOCATION"
             cd $LOCATION
             npm install
-            npm version $(jq -r '.version' package.json) --no-git-tag-version  # Ensure the package version is set correctly
             npm publish
             cd - > /dev/null
           done

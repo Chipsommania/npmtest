@@ -19,7 +19,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.8.1'  # Updated to Node.js 20.8.1 to support semantic-release dependencies
+          node-version: '20.8.1'  # Updated to Node.js 20.8.1 to support dependencies
           cache: 'npm'
 
       - name: Install dependencies
@@ -55,10 +55,10 @@ jobs:
             echo "Building and publishing $NAME at $LOCATION"
             cd $LOCATION
             npm install
-            npx semantic-release
+            npm version $(jq -r '.version' package.json) --no-git-tag-version  # Ensure the package version is set correctly
+            npm publish
             cd - > /dev/null
           done
 
       - name: Clean up npm cache
         run: npm cache clean --force
-

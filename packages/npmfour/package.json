@@ -7,6 +7,9 @@
   },
   "author": "",
   "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "",
-  "gitHead": "81642962c86101fc1407d5ba9545c6a9d0201eb9"
+  "gitHead": "59069c5ed25b4765896ca9f4bf89bb3dea53a0eb"
 }

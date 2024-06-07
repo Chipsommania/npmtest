@@ -1,66 +1,64 @@
-name: Publish Packages
+name: Release
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: write  # Grant write permissions to the GITHUB_TOKEN
+
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16.x]  # Specify the Node.js version
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '20.8.1'  # Updated to Node.js 20.8.1 to support semantic-release dependencies
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Detect changed packages
-        id: detect-changes
+      - name: Set up npm authentication
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Find changed packages
+        id: changed-packages
         run: |
-          # Get a list of changed files
-          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
-          echo "Changed files: $CHANGED_FILES"
+          CHANGED=$(npx lerna changed --json)
+          echo "$CHANGED" | jq -c '.' > changed-packages.json
+          echo "CHANGED_PACKAGES=$(cat changed-packages.json)" >> $GITHUB_ENV
 
-          # Initialize an array to hold changed packages
-          CHANGED_PACKAGES=()
-
-          # Loop through changed files and detect changed packages
-          for FILE in $CHANGED_FILES; do
-            if [[ $FILE == packages/*/package.json ]]; then
-              PACKAGE_DIR=$(dirname "$FILE")
-              CHANGED_PACKAGES+=("$PACKAGE_DIR")
-            fi
-          done
-
-          # Remove duplicates from the array
-          UNIQUE_CHANGED_PACKAGES=($(echo "${CHANGED_PACKAGES[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-
-          echo "Changed packages: ${UNIQUE_CHANGED_PACKAGES[@]}"
-          echo "::set-output name=changed-packages::${UNIQUE_CHANGED_PACKAGES[@]}"
+      - name: List all packages
+        id: list-packages
+        run: |
+          PACKAGES=$(npx lerna ls --all --json)
+          echo "$PACKAGES" | jq -c '.' > all-packages.json
+          echo "ALL_PACKAGES=$(cat all-packages.json)" >> $GITHUB_ENV
 
       - name: Build and publish changed packages
-        if: steps.detect-changes.outputs.changed-packages != ''
-        run: |
-          IFS=' ' read -r -a CHANGED_PACKAGES <<< "${{ steps.detect-changes.outputs.changed-packages }}"
-          for PACKAGE in "${CHANGED_PACKAGES[@]}"; do
-            echo "Building and publishing $PACKAGE"
-
-            cd "$PACKAGE"
-            npm install
-            npm run build  # Adjust this if your build script is named differently
-
-            # Publish the package to npm
-            npm publish
-            cd -
-          done
+        if: env.CHANGED_PACKAGES != '[]'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGED_NAMES=$(echo '${{ env.CHANGED_PACKAGES }}' | jq -r '.[].name')
+          ALL_PACKAGES=$(echo '${{ env.ALL_PACKAGES }}')
+          
+          for NAME in $CHANGED_NAMES; do
+            LOCATION=$(echo $ALL_PACKAGES | jq -r --arg NAME "$NAME" '.[] | select(.name == $NAME) | .location')
+            echo "Building and publishing $NAME at $LOCATION"
+            cd $LOCATION
+            npm install
+            npx semantic-release
+            cd - > /dev/null
+          done
+
+      - name: Clean up npm cache
+        run: npm cache clean --force
+

@@ -1,5 +1,5 @@
 {
-  "name": "npmfour",
+  "name": "@dragorog/npmfour",
   "version": "1.0.2",
   "main": "index.js",
   "scripts": {
@@ -8,5 +8,5 @@
   "author": "",
   "license": "ISC",
   "description": "",
-  "gitHead": "33a3bf6e00854bd0d1557245c1059dfd702cbc76"
+  "gitHead": "81642962c86101fc1407d5ba9545c6a9d0201eb9"
 }

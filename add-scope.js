@@ -10,7 +10,8 @@ fs.readdirSync(packagesDir).forEach(packageName => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     if (!packageJson.name.startsWith(scope)) {
       const pluginName = packageJson.name.replace('-temp', '');
-      packageJson.name = `${scope}-${pluginName}`;
+      const version = packageJson.version;
+      packageJson.name = `${scope}-${pluginName}@v${version}`;
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
       console.log(`Updated ${packageName}: ${packageJson.name}`);
     }

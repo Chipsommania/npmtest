@@ -1,46 +1,66 @@
-name: Release
+name: Publish Packages
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  contents: write  # Grant write permissions to the GITHUB_TOKEN
-
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        node-version: [16.x]  # Specify the Node.js version
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch all history for tags and branches
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.8.1'
-          cache: 'npm'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm install
 
-      - name: Set up npm authentication
+      - name: Detect changed packages
+        id: detect-changes
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          # Get a list of changed files
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files: $CHANGED_FILES"
 
-      - name: Commit uncommitted changes
+          # Initialize an array to hold changed packages
+          CHANGED_PACKAGES=()
+
+          # Loop through changed files and detect changed packages
+          for FILE in $CHANGED_FILES; do
+            if [[ $FILE == packages/*/package.json ]]; then
+              PACKAGE_DIR=$(dirname "$FILE")
+              CHANGED_PACKAGES+=("$PACKAGE_DIR")
+            fi
+          done
+
+          # Remove duplicates from the array
+          UNIQUE_CHANGED_PACKAGES=($(echo "${CHANGED_PACKAGES[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+          echo "Changed packages: ${UNIQUE_CHANGED_PACKAGES[@]}"
+          echo "::set-output name=changed-packages::${UNIQUE_CHANGED_PACKAGES[@]}"
+
+      - name: Build and publish changed packages
+        if: steps.detect-changes.outputs.changed-packages != ''
         run: |
-          if [[ -n $(git status -s) ]]; then
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git config --global user.name "github-actions[bot]"
-            git add .
-            git commit -m "chore: commit uncommitted changes"
-          fi
+          IFS=' ' read -r -a CHANGED_PACKAGES <<< "${{ steps.detect-changes.outputs.changed-packages }}"
+          for PACKAGE in "${CHANGED_PACKAGES[@]}"; do
+            echo "Building and publishing $PACKAGE"
 
-      - name: Publish packages
+            cd "$PACKAGE"
+            npm install
+            npm run build  # Adjust this if your build script is named differently
+
+            # Publish the package to npm
+            npm publish
+            cd -
+          done
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx lerna publish from-package --yes
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,5 @@
 {
-  "name": "@dragorog/npmfour",
+  "name": "npmfour",
   "version": "2.0.0",
   "main": "index.js",
   "scripts": {

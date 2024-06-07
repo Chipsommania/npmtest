@@ -1,64 +1,39 @@
-name: Release
+name: Publish All Packages
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  contents: write  # Grant write permissions to the GITHUB_TOKEN
-
 jobs:
-  release:
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Ensure the full history is fetched
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
-          node-version: '20.8.1'  # Updated to Node.js 20.8.1 to support semantic-release dependencies
-          cache: 'npm'
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Set up npm authentication
+      - name: Reset changes
+        run: git reset --hard
+
+      - name: Set npm auth token
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
-      - name: Find changed packages
-        id: changed-packages
-        run: |
-          CHANGED=$(npx lerna changed --json)
-          echo "$CHANGED" | jq -c '.' > changed-packages.json
-          echo "CHANGED_PACKAGES=$(cat changed-packages.json)" >> $GITHUB_ENV
+      - name: Build packages
+        run: npx lerna run build
 
-      - name: List all packages
-        id: list-packages
-        run: |
-          PACKAGES=$(npx lerna ls --all --json)
-          echo "$PACKAGES" | jq -c '.' > all-packages.json
-          echo "ALL_PACKAGES=$(cat all-packages.json)" >> $GITHUB_ENV
-
-      - name: Build and publish changed packages
-        if: env.CHANGED_PACKAGES != '[]'
+      - name: Publish packages
+        run: npx lerna publish from-package --yes --registry https://registry.npmjs.org
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          CHANGED_NAMES=$(echo '${{ env.CHANGED_PACKAGES }}' | jq -r '.[].name')
-          ALL_PACKAGES=$(echo '${{ env.ALL_PACKAGES }}')
-          
-          for NAME in $CHANGED_NAMES; do
-            LOCATION=$(echo $ALL_PACKAGES | jq -r --arg NAME "$NAME" '.[] | select(.name == $NAME) | .location')
-            echo "Building and publishing $NAME at $LOCATION"
-            cd $LOCATION
-            npm install
-            npx semantic-release
-            cd - > /dev/null
-          done
-
-      - name: Clean up npm cache
-        run: npm cache clean --force
-
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

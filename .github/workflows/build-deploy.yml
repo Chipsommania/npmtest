@@ -30,6 +30,9 @@ jobs:
       - name: Set npm auth token
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
+      - name: Add scope to package names
+        run: node add-scope.js
+
       - name: Build packages
         run: npx lerna run build
 

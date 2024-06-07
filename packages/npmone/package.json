@@ -1,5 +1,5 @@
 {
-  "name": "@dragorog/npmone",
+  "name": "npmone",
   "version": "1.0.2",
   "main": "index.js",
   "scripts": {

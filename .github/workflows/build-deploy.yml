@@ -29,9 +29,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        run: npm install
-
       - name: Detect version changes
         id: detect-version
         run: |
@@ -53,8 +50,10 @@ jobs:
         run: |
           IFS=',' read -r -a packages <<< "$changed_packages"
           for package in "${packages[@]}"; do
-            echo "Building and publishing $package..."
+            echo "Installing dependencies for $package..."
             cd "$package"
+            npm install
+            echo "Building and publishing $package..."
             npm run build
             npm publish
             cd ../..

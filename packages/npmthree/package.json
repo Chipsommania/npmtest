@@ -1,6 +1,6 @@
 {
     "name": "npm2drago",
-    "version": "0.1.2",
+    "version": "0.1.1",
     "scripts": {
       "build": "echo Building npmthree...",
       "semantic-release": "semantic-release"

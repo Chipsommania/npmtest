@@ -1,16 +1,15 @@
 {
-    "name": "npmfive",
-    "version": "2.0.3",
-    "main": "index.js",
-    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "",
-    "license": "ISC",
-    "publishConfig": {
-      "access": "public"
-    },
-    "description": "",
-    "gitHead": "59069c5ed25b4765896ca9f4bf89bb3dea53a0eb"
-  }
-  
+  "name": "npmfive",
+  "version": "2.0.3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "",
+  "gitHead": "458887e9494cc39ccfae99404121a71c70af4819"
+}

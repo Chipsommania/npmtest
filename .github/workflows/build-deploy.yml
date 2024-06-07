@@ -22,7 +22,7 @@ jobs:
           node-version: '20.8.1'  # Updated to Node.js 20.8.1 to support dependencies
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm install
 
       - name: Set up npm authentication

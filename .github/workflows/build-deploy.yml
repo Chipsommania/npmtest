@@ -1,63 +1,80 @@
-name: Release
+name: Publish Packages
 
 on:
   push:
     branches:
       - main
-
-permissions:
-  contents: write  # Grant write permissions to the GITHUB_TOKEN
+    paths:
+      - 'packages/**'
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: List packages
+      id: list-packages
+      run: |
+        node list-packages.js > packages.txt
+        echo "PACKAGES=$(cat packages.txt)" >> $GITHUB_ENV
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Set matrix for build
+      id: set-matrix
+      run: |
+        echo "matrix=$(jq -n --arg packages "${{ env.PACKAGES }}" '{"include": ($packages | fromjson | map({"package": .}))}')" > matrix.json
+        cat matrix.json
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Build and Publish
+      strategy:
+        matrix: ${{ fromJson(steps.set-matrix.outputs.matrix) }}
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.8.1'  # Updated to Node.js 20.8.1 to support dependencies
-          cache: 'npm'
+          node-version: '16'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Install root dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Set up npm authentication
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-      - name: Detect changed packages
-        id: detect-changes
+      - name: Get changed files
+        id: changes
         run: |
-          CHANGED=$(npx lerna ls --since HEAD^ --json)
-          echo "$CHANGED" | jq -c '.' > changed-packages.json
-          echo "CHANGED_PACKAGES=$(cat changed-packages.json)" >> $GITHUB_ENV
+          echo "CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)" >> $GITHUB_ENV
+          echo "Changed files: ${{ env.CHANGED_FILES }}"
 
-      - name: List all packages
-        id: list-packages
+      - name: Build and Publish
+        if: contains(env.CHANGED_FILES, 'packages/${{ matrix.package }}/')
         run: |
-          PACKAGES=$(npx lerna ls --all --json)
-          echo "$PACKAGES" | jq -c '.' > all-packages.json
-          echo "ALL_PACKAGES=$(cat all-packages.json)" >> $GITHUB_ENV
-
-      - name: Build and publish changed packages
-        if: env.CHANGED_PACKAGES != '[]'
+          cd packages/${{ matrix.package }}
+          npm version $(jq -r .version package.json) --no-git-tag-version
+          npm publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          CHANGED_NAMES=$(echo '${{ env.CHANGED_PACKAGES }}' | jq -r '.[].name')
-          ALL_PACKAGES=$(echo '${{ env.ALL_PACKAGES }}')
-          
-          for NAME in $CHANGED_NAMES; do
-            LOCATION=$(echo $ALL_PACKAGES | jq -r --arg NAME "$NAME" '.[] | select(.name == $NAME) | .location')
-            echo "Building and publishing $NAME at $LOCATION"
-            cd $LOCATION
-            npm install
-            npm publish
-            cd - > /dev/null
-          done
-
-      - name: Clean up npm cache
-        run: npm cache clean --force
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

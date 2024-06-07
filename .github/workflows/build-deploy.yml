@@ -2,79 +2,60 @@ name: Publish Packages
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - 'packages/**'
+      - 'packages/**/package.json'
 
 jobs:
-  build:
+  detect-and-publish:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: List packages
-      id: list-packages
-      run: |
-        node list-packages.js > packages.txt
-        echo "PACKAGES=$(cat packages.txt)" >> $GITHUB_ENV
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-    - name: Set matrix for build
-      id: set-matrix
-      run: |
-        echo "matrix=$(jq -n --arg packages "${{ env.PACKAGES }}" '{"include": ($packages | fromjson | map({"package": .}))}')" > matrix.json
-        cat matrix.json
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-    - name: Build and Publish
-      strategy:
-        matrix: ${{ fromJson(steps.set-matrix.outputs.matrix) }}
-      runs-on: ubuntu-latest
-      steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
           node-version: '16'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        run: npm install
 
       - name: Cache node modules
-        uses: actions/cache@v3
+        uses: actions/cache@v2
         with:
-          path: ~/.npm
+          path: |
+            **/node_modules
+            ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Get changed files
-        id: changes
+      - name: Install dependencies
+        run: npm install
+
+      - name: Detect version changes
+        id: detect-version
         run: |
-          echo "CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)" >> $GITHUB_ENV
-          echo "Changed files: ${{ env.CHANGED_FILES }}"
+          CHANGED_PACKAGES=()
+          for package in packages/*; do
+            if [[ -d "$package" ]]; then
+              PACKAGE_JSON="$package/package.json"
+              CURRENT_VERSION=$(jq -r '.version' "$PACKAGE_JSON")
+              PREVIOUS_VERSION=$(git show HEAD~1:"$PACKAGE_JSON" | jq -r '.version')
+              if [[ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]]; then
+                CHANGED_PACKAGES+=("$package")
+              fi
+            fi
+          done
+          echo "changed_packages=$(IFS=,; echo "${CHANGED_PACKAGES[*]}")" >> $GITHUB_ENV
 
       - name: Build and Publish
-        if: contains(env.CHANGED_FILES, 'packages/${{ matrix.package }}/')
+        if: env.changed_packages != ''
         run: |
-          cd packages/${{ matrix.package }}
-          npm version $(jq -r .version package.json) --no-git-tag-version
-          npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          IFS=',' read -r -a packages <<< "$changed_packages"
+          for package in "${packages[@]}"; do
+            echo "Building and publishing $package..."
+            cd "$package"
+            npm run build
+            npm publish
+            cd ../..
+          done

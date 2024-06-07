@@ -1,1 +1,1 @@
-console.log("This is npaaaadsdsmdasdaasodsssssdsadasdsne dsdsdsdaadpackdasdsage. testingggg");
+console.log("Ovo je verzija 1.0.3");

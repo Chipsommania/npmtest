@@ -2,59 +2,33 @@ name: Publish Packages
 
 on:
   push:
-    paths:
-      - 'packages/**/package.json'
+    branches:
+      - main
 
 jobs:
-  detect-and-publish:
+  build-and-publish:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '14'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Cache node modules
-        uses: actions/cache@v2
-        with:
-          path: |
-            **/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm install
 
-      - name: Detect version changes
-        id: detect-version
-        run: |
-          CHANGED_PACKAGES=()
-          for package in packages/*; do
-            if [[ -d "$package" ]]; then
-              PACKAGE_JSON="$package/package.json"
-              CURRENT_VERSION=$(jq -r '.version' "$PACKAGE_JSON")
-              PREVIOUS_VERSION=$(git show HEAD~1:"$PACKAGE_JSON" | jq -r '.version')
-              if [[ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]]; then
-                CHANGED_PACKAGES+=("$package")
-              fi
-            fi
-          done
-          echo "changed_packages=$(IFS=,; echo "${CHANGED_PACKAGES[*]}")" >> $GITHUB_ENV
+      - name: Set npm auth token
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
-      - name: Build and Publish
-        if: env.changed_packages != ''
-        run: |
-          IFS=',' read -r -a packages <<< "$changed_packages"
-          for package in "${packages[@]}"; do
-            echo "Installing dependencies for $package..."
-            cd "$package"
-            npm install
-            echo "Building and publishing $package..."
-            npm run build
-            npm publish
-            cd ../..
-          done
+      - name: Build packages
+        run: npx lerna run build
+
+      - name: Publish packages
+        run: npx lerna publish from-package --yes --registry https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

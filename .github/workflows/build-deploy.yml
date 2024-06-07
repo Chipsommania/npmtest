@@ -28,10 +28,10 @@ jobs:
       - name: Set up npm authentication
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
-      - name: Find changed packages
-        id: changed-packages
+      - name: Detect changed packages
+        id: detect-changes
         run: |
-          CHANGED=$(npx lerna changed --json)
+          CHANGED=$(npx lerna ls --since HEAD^ --json)
           echo "$CHANGED" | jq -c '.' > changed-packages.json
           echo "CHANGED_PACKAGES=$(cat changed-packages.json)" >> $GITHUB_ENV
 

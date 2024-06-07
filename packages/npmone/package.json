@@ -1,6 +1,6 @@
 {
     "name": "npm1dragotest",
-    "version": "0.2.2",
+    "version": "0.2.4",
     "scripts": {
       "build": "echo Building npmone...",
       "semantic-release": "semantic-release"

@@ -1,15 +1,15 @@
 {
-  "name": "npmfour",
-  "version": "2.0.4",
+  "name": "transport",
+  "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
   "publishConfig": {
     "access": "public"
   },
+  "license": "ISC",
   "description": "",
   "gitHead": "59069c5ed25b4765896ca9f4bf89bb3dea53a0eb"
 }

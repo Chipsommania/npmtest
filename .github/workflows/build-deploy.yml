@@ -8,6 +8,7 @@ on:
 jobs:
   wait_30_seconds:
     runs-on: ubuntu-latest
+    environment: development
     steps:
       - name: Wait for 30 seconds
         run: sleep 30

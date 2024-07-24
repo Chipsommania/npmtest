@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     steps:
-      - name: Wait for 30 seconds
-        run: sleep 30
       - name: Exit successfully
         run: exit 0
 

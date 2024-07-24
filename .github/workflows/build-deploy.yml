@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Wait for 30 seconds
         run: sleep 30
+      - name: Exit successfully
+        run: exit 0
 
   build-and-publish:
     runs-on: ubuntu-latest

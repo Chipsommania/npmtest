@@ -14,8 +14,7 @@ jobs:
         run: exit 0
 
   build-and-publish:
-    runs-on: ubuntu-latest
-    environment: development  # Set the environment name to development
+    runs-on: ubuntu-latest  # Set the environment name to development
     needs: wait_30_seconds  # Ensure this job runs after wait_30_seconds
 
     steps:

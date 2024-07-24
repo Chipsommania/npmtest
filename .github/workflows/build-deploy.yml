@@ -8,6 +8,7 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    environment: development  # Set the environment name to development
 
     steps:
       - name: Checkout code
@@ -47,5 +48,3 @@ jobs:
         run: npx lerna publish from-package --yes --registry https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-          

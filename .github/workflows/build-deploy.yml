@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    environment: development  # Set the environment name to development
+
 
     steps:
       - name: Checkout code

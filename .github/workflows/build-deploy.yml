@@ -5,10 +5,12 @@ on:
     branches:
       - main
 
+env:
+  DEPLOYMENT_ENV: development
+
 jobs:
   wait_30_seconds:
     runs-on: ubuntu-latest
-    environment: development
     steps:
       - name: Exit successfully
         run: exit 0
@@ -16,7 +18,6 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     needs: wait_30_seconds
-    environment: development
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

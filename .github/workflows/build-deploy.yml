@@ -62,17 +62,17 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const deployments = await github.repos.listDeployments({
+            const { data: deployments } = await github.repos.listDeployments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               environment: 'development',
               per_page: 1,
               page: 1
             });
-            if (deployments.data.length === 0) {
+            if (deployments.length === 0) {
               throw new Error('No deployments found');
             }
-            const deploymentId = deployments.data[0].id;
+            const deploymentId = deployments[0].id;
             core.setOutput('deployment_id', deploymentId);
 
       - name: Set deployment status to success
@@ -80,7 +80,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const deploymentId = ${{ steps.get_deployment_id.outputs.deployment_id }};
+            const deploymentId = core.getInput('deployment_id');
             const response = await github.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -94,7 +94,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const deploymentId = ${{ steps.get_deployment_id.outputs.deployment_id }};
+            const deploymentId = core.getInput('deployment_id');
             const response = await github.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

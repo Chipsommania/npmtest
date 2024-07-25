@@ -63,8 +63,8 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const { context } = require('@actions/github');
             const github = require('@actions/github');
-            const { context } = github;
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -81,8 +81,8 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const { context } = require('@actions/github');
             const github = require('@actions/github');
-            const { context } = github;
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

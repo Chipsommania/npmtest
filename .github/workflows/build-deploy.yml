@@ -62,17 +62,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: deployments } = await github.repos.listDeployments({
+            const { listDeployments } = require('@octokit/rest')();
+            const deployments = await listDeployments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               environment: 'development',
               per_page: 1,
               page: 1
             });
-            if (deployments.length === 0) {
+            if (deployments.data.length === 0) {
               throw new Error('No deployments found');
             }
-            const deploymentId = deployments[0].id;
+            const deploymentId = deployments.data[0].id;
             core.setOutput('deployment_id', deploymentId);
 
       - name: Set deployment status to success
@@ -81,7 +82,8 @@ jobs:
         with:
           script: |
             const deploymentId = core.getInput('deployment_id');
-            const response = await github.repos.createDeploymentStatus({
+            const { createDeploymentStatus } = require('@octokit/rest')();
+            const response = await createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               deployment_id: deploymentId,
@@ -95,7 +97,8 @@ jobs:
         with:
           script: |
             const deploymentId = core.getInput('deployment_id');
-            const response = await github.repos.createDeploymentStatus({
+            const { createDeploymentStatus } = require('@octokit/rest')();
+            const response = await createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               deployment_id: deploymentId,

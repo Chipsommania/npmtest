@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  deployments: write  # Add this to give deployment permissions
+
 jobs:
   create_deployment:
     runs-on: ubuntu-latest

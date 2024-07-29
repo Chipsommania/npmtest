@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     steps:
-      - name: Exit successfully
-        run: exit 0
+      - name: Wait for 30 seconds
+        run: sleep 30
 
   build-and-publish:
     runs-on: ubuntu-latest

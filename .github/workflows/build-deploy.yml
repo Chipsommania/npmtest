@@ -93,6 +93,9 @@ jobs:
           script: |
             const status = '${{ job.status }}';
             const deployment_id = '${{ needs.create_deployment.outputs.deployment_id }}';
+            if (!deployment_id) {
+              throw new Error('Deployment ID is missing');
+            }
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
